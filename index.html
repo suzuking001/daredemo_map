@@ -1,0 +1,149 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="application-name" content="Hamamatsu Infant Daycare Support Map">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script>
+    if (location.protocol !== "file:") {
+      const manifest = document.createElement("link");
+      manifest.rel = "manifest";
+      manifest.href = "manifest.webmanifest";
+      document.head.appendChild(manifest);
+    }
+  </script>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/icon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+  <meta name="msapplication-TileColor" content="#1d4ed8">
+  <meta name="msapplication-config" content="browserconfig.xml">
+  <title>浜松市 こども誰でも通園制度（乳児等通園支援事業）マップ</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <button id="menu-toggle" class="menu-toggle" aria-label="メニューを開く" aria-expanded="true" aria-controls="side-menu">
+    &#9776;
+  </button>
+  <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
+  <aside id="side-menu" class="side-menu open" aria-hidden="false">
+    <div class="menu-header-row">
+      <div class="menu-header">浜松市 こども誰でも通園制度（乳児等通園支援事業）</div>
+      <button id="menu-close" class="menu-close" type="button" aria-label="メニューを閉じる">×</button>
+    </div>
+    <div class="menu-catch">
+      <div><strong>○</strong> こども誰でも通園制度の実施施設を地図で確認できます。</div>
+      <div><strong>○</strong> 年齢と曜日を選ぶと利用枠の有無が色で分かります。</div>
+      <div><strong>○</strong> マップ上の施設をクリックすると詳細が表示されます。</div>
+        <p>公式情報は下記から入手するようにしてください。<br>
+          <a href="https://www.hamamatsu-pippi.net/contents/40619.html" target="_blank" rel="noopener">https://www.hamamatsu-pippi.net/contents/40619.html</a>
+        </p>
+    <div id="filter-hint" class="menu-hint"></div>
+    <label class="menu-label" for="age-select">年齢を選択</label>
+    <select id="age-select" class="menu-input"></select>
+    <label class="menu-label" for="weekday-select">曜日を選択</label>
+    <select id="weekday-select" class="menu-input"></select>
+    <div class="menu-actions">
+      <button id="filter-clear" class="menu-button" type="button">表示をリセット</button>
+    </div>
+    <div class="menu-section">
+      <div class="menu-subtitle">施設種別</div>
+      <label class="menu-option">
+        <input type="checkbox" id="filter-certified" checked>
+        <span class="menu-tag">認定こども園</span>
+      </label>
+      <label class="menu-option">
+        <input type="checkbox" id="filter-private" checked>
+        <span class="menu-tag menu-tag-private">私立認可保育園</span>
+      </label>
+      <label class="menu-option">
+        <input type="checkbox" id="filter-municipal" checked>
+        <span class="menu-tag menu-tag-municipal">公立認可保育園</span>
+      </label>
+      <label class="menu-option">
+        <input type="checkbox" id="filter-small" checked>
+        <span class="menu-tag menu-tag-small">小規模保育事業</span>
+      </label>
+      <label class="menu-option">
+        <input type="checkbox" id="filter-onsite" checked>
+        <span class="menu-tag menu-tag-onsite">事業所内保育事業</span>
+      </label>
+      <label class="menu-option">
+        <input type="checkbox" id="filter-kindergarten" checked>
+        <span class="menu-tag menu-tag-kindergarten">私立幼稚園</span>
+      </label>
+    </div>
+    <div id="filter-info" class="menu-hint">未選択 / 全施設表示</div>
+    <div id="status-summary" class="status-summary hidden">
+      <div class="status-row">
+        <span class="status-legend status-legend-available" aria-hidden="true"></span>
+        利用枠あり: <span id="status-available">0</span>件
+      </div>
+      <div class="status-row">
+        <span class="status-legend status-legend-full" aria-hidden="true"></span>
+        利用枠なし: <span id="status-full">0</span>件
+      </div>
+    </div>
+    <div class="menu-footer">
+      <div class="menu-hint menu-note">位置情報は端末内で処理され、保存されません。</div>
+      <div class="menu-actions">
+        <button id="about-button" class="menu-button" type="button">このアプリについて</button>
+      </div>
+    </div>
+  </aside>
+  <div id="map"></div>
+  <div id="details-modal" class="details-modal" aria-hidden="true" role="dialog" aria-label="施設詳細">
+    <div class="details-container" role="document">
+      <div class="details-header">
+        <div class="details-title"></div>
+        <button id="details-close" class="menu-button" type="button">閉じる</button>
+      </div>
+      <div id="details-body" class="details-body"></div>
+    </div>
+  </div>
+
+  <div id="about-modal" class="details-modal" aria-hidden="true" role="dialog" aria-label="このアプリについて">
+    <div class="details-container" role="document">
+      <div class="details-header">
+        <div class="details-title">このアプリについて</div>
+        <button id="about-close" class="menu-button" type="button">閉じる</button>
+      </div>
+      <div id="about-body" class="about-body">
+        <p>このアプリは、浜松市が公開するオープンデータ<br>
+「乳児等通園支援事業」を利用しています。</p>
+        <p>データ提供：浜松市<br>クリエイティブ・コモンズ・ライセンス 表示2.1 日本</p>
+        <p>本アプリは個人が作成した非公式アプリであり、<br>
+浜松市が提供・運営するものではありません。</p>
+        <p>表示内容は可能な限り最新の情報に基づいていますが、内容の正確性を保証するものではありません。<br>
+最新情報は必ず公式の情報をご確認ください。</p>
+        <p>公式情報は下記から入手するようにしてください。<br>
+          <a href="https://opendata.pref.shizuoka.jp/dataset/11896.html" target="_blank" rel="noopener">https://opendata.pref.shizuoka.jp/dataset/11896.html</a>
+        </p>
+        <p>位置情報は端末内で処理され、保存されません。</p>
+      </div>
+    </div>
+  </div>
+  <script
+    charset="UTF-8"
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="">
+  </script>
+
+  <script charset="UTF-8" src="assets/js/config.js"></script>
+  <script charset="UTF-8" src="assets/js/csv.js"></script>
+  <script charset="UTF-8" src="assets/js/utils.js"></script>
+  <script charset="UTF-8" src="assets/js/map-utils.js"></script>
+  <script charset="UTF-8" src="assets/js/availability.js"></script>
+  <script charset="UTF-8" src="assets/js/facilities.js"></script>
+  <script charset="UTF-8" src="assets/app.js"></script>
+</body>
+</html>
