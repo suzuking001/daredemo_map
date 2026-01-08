@@ -2,7 +2,7 @@
   window.App = window.App || {};
 
   async function fetchCSV(url, encoding = "shift-jis") {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
       throw new Error(`CSV fetch failed: ${res.status} ${res.statusText}`);
     }
@@ -61,3 +61,4 @@
 
   window.App.csv = { fetchCSV, parseCSV };
 })();
+

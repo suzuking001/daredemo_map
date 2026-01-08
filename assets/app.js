@@ -367,16 +367,16 @@
 
       userLocationMarker = L.circleMarker(event.latlng, {
         radius: 7,
-        color: "#b91c1c",
-        fillColor: "#fca5a5",
+        color: "#2563eb",
+        fillColor: "#60a5fa",
         fillOpacity: 0.9,
         weight: 2,
       }).addTo(map).bindPopup("現在地");
 
       userLocationCircle = L.circle(event.latlng, {
         radius: event.accuracy,
-        color: "#fca5a5",
-        fillColor: "#fecaca",
+        color: "#60a5fa",
+        fillColor: "#bfdbfe",
         fillOpacity: 0.2,
         weight: 1,
         interactive: false,
@@ -384,8 +384,8 @@
 
       userLocationCircle2km = L.circle(event.latlng, {
         radius: 2000,
-        color: "#f87171",
-        fillColor: "#fecaca",
+        color: "#2563eb",
+        fillColor: "#bfdbfe",
         fillOpacity: 0.12,
         weight: 2,
         dashArray: "4 6",
@@ -394,8 +394,8 @@
 
       userLocationCircle5km = L.circle(event.latlng, {
         radius: 5000,
-        color: "#ef4444",
-        fillColor: "#fee2e2",
+        color: "#1d4ed8",
+        fillColor: "#dbeafe",
         fillOpacity: 0.08,
         weight: 2,
         dashArray: "4 6",
@@ -508,3 +508,4 @@
 
   main().catch(console.error);
 })();
+
