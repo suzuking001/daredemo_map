@@ -1,6 +1,6 @@
 ﻿{
-  "name": "daredemo_map",
-  "short_name": "daredemo_map",
+  "name": "Daredemo_Map",
+  "short_name": "Daredemo_Map",
   "description": "Infant daycare support facilities map for Hamamatsu.",
   "start_url": "./index.html",
   "scope": "./",
