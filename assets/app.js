@@ -3,7 +3,6 @@
     DATA_CSV_URL,
     TILE_URL,
     TILE_ATTRIBUTION,
-    DATASET_ATTRIBUTION,
     MARKER_STYLE_DEFAULT,
     MARKER_STYLE_FULL,
     MARKER_STYLE_AVAILABLE,
@@ -271,7 +270,6 @@
       '<a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> (MIT)'
     );
     map.attributionControl.setPosition("topright");
-    map.attributionControl.addAttribution(DATASET_ATTRIBUTION);
     const controlPosition = isMobileView() ? "topleft" : "bottomright";
     L.control.zoom({ position: controlPosition }).addTo(map);
 
