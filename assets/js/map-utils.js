@@ -56,6 +56,9 @@
   }
 
   function getAvailabilityStatus(facility, selectedAge, selectedWeekday) {
+    if (!facility || !facility.hasAvailability) {
+      return "";
+    }
     if (!selectedAge || !selectedWeekday) {
       return "";
     }

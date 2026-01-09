@@ -46,6 +46,12 @@
     if (!selectedWeekday && !selectedAge) {
       return name;
     }
+    if (facility.hasAvailability === false) {
+      return `
+        <div class="label-title">${name}</div>
+        <div class="label-status"><span class="label-empty">情報なし</span></div>
+      `;
+    }
 
     const ageMatch = matchesAge ? matchesAge(facility, selectedAge) : true;
     let statusHtml = "";

@@ -4,6 +4,34 @@
   const DATA_CSV_URL =
     "https://static.hamamatsu.odpf.net/opendata/v01/221309_infants_attending_kindergarten/221309_infants_attending_kindergarten.csv";
   const DATASET_PAGE_URL = "https://opendata.pref.shizuoka.jp/dataset/11896.html";
+  const FACILITY_SOURCES = [
+    {
+      key: "certified",
+      label: "認定こども園",
+      url: "https://static.hamamatsu.odpf.net/opendata/v01/221309_certified_child_institution_nursery_center/221309_certified_child_institution_nursery_center.csv",
+    },
+    {
+      key: "private",
+      label: "私立認可保育園",
+      url: "https://static.hamamatsu.odpf.net/opendata/v01/221309_privately_licensed_nursery_school/221309_privately_licensed_nursery_school.csv",
+    },
+    {
+      key: "municipal",
+      label: "公立認可保育園",
+      url: "https://static.hamamatsu.odpf.net/opendata/v01/221309_municipal_licensed_nursery_school/221309_municipal_licensed_nursery_school.csv",
+    },
+    {
+      key: "small",
+      label: "小規模保育事業",
+      url: "https://static.hamamatsu.odpf.net/opendata/v01/221309_small_childcare_business/221309_small_childcare_business.csv",
+    },
+    {
+      key: "onsite",
+      label: "事業所内保育事業",
+      url: "https://static.hamamatsu.odpf.net/opendata/v01/221309_on-site_childcare_business/221309_on-site_childcare_business.csv",
+    },
+  ];
+  const FACILITY_CSV_URLS = FACILITY_SOURCES.map(source => source.url);
 
   const TILE_URL =
     new URLSearchParams(window.location.search).get("tiles") ||
@@ -28,6 +56,8 @@
   window.App.config = {
     DATA_CSV_URL,
     DATASET_PAGE_URL,
+    FACILITY_SOURCES,
+    FACILITY_CSV_URLS,
     TILE_URL,
     TILE_ATTRIBUTION,
     DATASET_ATTRIBUTION,

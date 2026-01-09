@@ -1,6 +1,8 @@
 ﻿(() => {
   const {
     DATA_CSV_URL,
+    FACILITY_CSV_URLS,
+    FACILITY_SOURCES,
     TILE_URL,
     TILE_ATTRIBUTION,
     MARKER_STYLE_DEFAULT,
@@ -17,7 +19,7 @@
     isMobileView,
     createRangeLabel,
   } = window.App.mapUtils;
-  const { addFacilitiesFromDataset } = window.App.facilities;
+  const { addFacilitiesFromDatasets } = window.App.facilities;
 
   let menuToggle = null;
   let ageSelect = null;
@@ -253,12 +255,24 @@
   }
 
   async function main() {
-    const dataText = await fetchCSV(DATA_CSV_URL);
-    const workerResult = await parseInWorker([dataText]);
-    const dataset = workerResult && workerResult.facilities && workerResult.facilities[0]
-      ? workerResult.facilities[0]
-      : parseCSV(dataText);
-    const facilities = addFacilitiesFromDataset(dataset);
+    const facilityTexts = await Promise.all(
+      FACILITY_CSV_URLS.map(url => fetchCSV(url))
+    );
+    const availabilityText = await fetchCSV(DATA_CSV_URL);
+    const workerResult = await parseInWorker([...facilityTexts, availabilityText]);
+    const datasets = workerResult && workerResult.facilities
+      ? workerResult.facilities
+      : [
+        ...facilityTexts.map(text => parseCSV(text)),
+        parseCSV(availabilityText),
+      ];
+    const availabilityDataset = datasets[facilityTexts.length];
+    const facilityDatasets = datasets.slice(0, facilityTexts.length);
+    const facilities = addFacilitiesFromDatasets(
+      facilityDatasets,
+      availabilityDataset,
+      FACILITY_SOURCES
+    );
 
     const map = L.map("map", { zoomControl: false, attributionControl: true })
       .setView([34.7108, 137.7266], 12);
