@@ -31,7 +31,7 @@
 </head>
 <body>
   <button id="menu-toggle" class="menu-toggle" aria-label="メニューを開く" aria-expanded="true" aria-controls="side-menu">
-    &#9776;
+    MENU
   </button>
   <div id="menu-backdrop" class="menu-backdrop" aria-hidden="true"></div>
   <aside id="side-menu" class="side-menu open" aria-hidden="false">
@@ -46,6 +46,7 @@
         <p>公式情報は下記から入手するようにしてください。<br>
           <a href="https://www.hamamatsu-pippi.net/contents/40619.html" target="_blank" rel="noopener">https://www.hamamatsu-pippi.net/contents/40619.html</a>
         </p>
+    </div>
     <div id="filter-hint" class="menu-hint"></div>
     <label class="menu-label" for="age-select">年齢を選択</label>
     <select id="age-select" class="menu-input"></select>
@@ -94,6 +95,11 @@
     </div>
     <div class="menu-footer">
       <div class="menu-hint menu-note">位置情報は端末内で処理され、保存されません。</div>
+      <div class="menu-license">
+        <div>Leaflet (MIT) | &copy; OpenStreetMap contributors (ODbL)</div>
+        <div>データ(CC BY): 乳児等通園支援事業</div>
+        <div>提供: <a href="https://opendata.pref.shizuoka.jp/" target="_blank" rel="noopener">静岡県オープンデータポータル</a> / <a href="https://www.city.hamamatsu.shizuoka.jp/opendata/index.html" target="_blank" rel="noopener">浜松市オープンデータ</a></div>
+      </div>
       <div class="menu-actions">
         <button id="about-button" class="menu-button" type="button">このアプリについて</button>
       </div>

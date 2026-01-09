@@ -29,12 +29,171 @@
   const aboutModal = document.getElementById("about-modal");
   const aboutClose = document.getElementById("about-close");
   const aboutButton = document.getElementById("about-button");
+  let lastDetailsFocus = null;
+  let lastAboutFocus = null;
+
+  const WORKER_SOURCE = String.raw`
+(() => {
+  function parseCSV(text) {
+    const rows = [];
+    let row = [];
+    let field = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (inQuotes) {
+        if (char === "\"") {
+          if (text[i + 1] === "\"") {
+            field += "\"";
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field += char;
+        }
+        continue;
+      }
+
+      if (char === "\"") {
+        inQuotes = true;
+      } else if (char === ",") {
+        row.push(field);
+        field = "";
+      } else if (char === "\n") {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+      } else if (char !== "\r") {
+        field += char;
+      }
+    }
+
+    if (field.length || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+
+    const headers = rows.shift() || [];
+    const cleanedRows = rows.filter(r => r.some(cell => String(cell).trim() !== ""));
+    return { headers, rows: cleanedRows };
+  }
+
+  self.onmessage = event => {
+    const data = event.data || {};
+    const id = data.id;
+    const facilityTexts = data.facilityTexts;
+    if (!id || !Array.isArray(facilityTexts)) {
+      return;
+    }
+    try {
+      const facilities = facilityTexts.map(parseCSV);
+      self.postMessage({
+        id,
+        ok: true,
+        payload: { facilities },
+      });
+    } catch (error) {
+      self.postMessage({
+        id,
+        ok: false,
+        error: error && error.message ? error.message : "Worker failed",
+      });
+    }
+  };
+})();
+`;
+
+  function parseInWorker(facilityTexts) {
+    if (!("Worker" in window)) {
+      return Promise.resolve(null);
+    }
+    if (!Array.isArray(facilityTexts)) {
+      return Promise.resolve(null);
+    }
+    return new Promise(resolve => {
+      let worker;
+      let workerUrl = null;
+      const createInlineWorker = () => {
+        const blob = new Blob([WORKER_SOURCE], { type: "text/javascript" });
+        workerUrl = URL.createObjectURL(blob);
+        return new Worker(workerUrl);
+      };
+      try {
+        if (window.location.protocol === "file:") {
+          worker = createInlineWorker();
+        } else {
+          try {
+            worker = new Worker("assets/js/csv-worker.js");
+          } catch (error) {
+            worker = createInlineWorker();
+          }
+        }
+      } catch (error) {
+        console.warn("Worker unavailable:", error);
+        if (workerUrl) {
+          URL.revokeObjectURL(workerUrl);
+        }
+        resolve(null);
+        return;
+      }
+
+      const messageId = `csv-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const cleanup = () => {
+        worker.removeEventListener("message", handleMessage);
+        worker.removeEventListener("error", handleError);
+        worker.terminate();
+        if (workerUrl) {
+          URL.revokeObjectURL(workerUrl);
+        }
+      };
+      const handleMessage = event => {
+        const data = event.data;
+        if (!data || data.id !== messageId) {
+          return;
+        }
+        cleanup();
+        if (data.ok && data.payload) {
+          resolve(data.payload);
+          return;
+        }
+        console.warn("Worker parse failed:", data && data.error);
+        resolve(null);
+      };
+      const handleError = event => {
+        cleanup();
+        console.warn("Worker error:", event && event.message);
+        resolve(null);
+      };
+
+      worker.addEventListener("message", handleMessage);
+      worker.addEventListener("error", handleError);
+      worker.postMessage({
+        id: messageId,
+        facilityTexts,
+      });
+    });
+  }
+
+  const focusIfPossible = element => {
+    if (!element || typeof element.focus !== "function") {
+      return false;
+    }
+    if (!element.isConnected || element.getClientRects().length === 0) {
+      return false;
+    }
+    element.focus();
+    return document.activeElement === element;
+  };
 
   function setDetailsOpen(isOpen, htmlContent = "") {
     if (!detailsModal || !detailsBody) {
       return;
     }
     if (isOpen) {
+      lastDetailsFocus = document.activeElement;
       detailsBody.innerHTML = htmlContent;
       detailsModal.inert = false;
       detailsModal.setAttribute("aria-hidden", "false");
@@ -44,8 +203,13 @@
       detailsModal.classList.toggle("open", true);
       return;
     }
-    if (detailsModal.contains(document.activeElement) && menuToggle) {
-      menuToggle.focus();
+    const activeElement = document.activeElement;
+    if (detailsModal.contains(activeElement)) {
+      const focused =
+        focusIfPossible(lastDetailsFocus) || focusIfPossible(menuToggle);
+      if (!focused && activeElement && activeElement.blur) {
+        activeElement.blur();
+      }
     }
     detailsModal.classList.toggle("open", false);
     detailsModal.setAttribute("aria-hidden", "true");
@@ -57,6 +221,7 @@
       return;
     }
     if (isOpen) {
+      lastAboutFocus = document.activeElement;
       setDetailsOpen(false);
       aboutModal.inert = false;
       aboutModal.setAttribute("aria-hidden", "false");
@@ -66,8 +231,15 @@
       aboutModal.classList.toggle("open", true);
       return;
     }
-    if (aboutModal.contains(document.activeElement) && aboutButton) {
-      aboutButton.focus();
+    const activeElement = document.activeElement;
+    if (aboutModal.contains(activeElement)) {
+      const focused =
+        focusIfPossible(lastAboutFocus) ||
+        focusIfPossible(aboutButton) ||
+        focusIfPossible(menuToggle);
+      if (!focused && activeElement && activeElement.blur) {
+        activeElement.blur();
+      }
     }
     aboutModal.classList.toggle("open", false);
     aboutModal.setAttribute("aria-hidden", "true");
@@ -83,7 +255,10 @@
 
   async function main() {
     const dataText = await fetchCSV(DATA_CSV_URL);
-    const dataset = parseCSV(dataText);
+    const workerResult = await parseInWorker([dataText]);
+    const dataset = workerResult && workerResult.facilities && workerResult.facilities[0]
+      ? workerResult.facilities[0]
+      : parseCSV(dataText);
     const facilities = addFacilitiesFromDataset(dataset);
 
     const map = L.map("map", { zoomControl: false, attributionControl: true })
@@ -95,11 +270,12 @@
     map.attributionControl.setPrefix(
       '<a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> (MIT)'
     );
-    map.attributionControl.setPosition("bottomright");
+    map.attributionControl.setPosition("topright");
     map.attributionControl.addAttribution(DATASET_ATTRIBUTION);
-    L.control.zoom({ position: "bottomright" }).addTo(map);
+    const controlPosition = isMobileView() ? "topleft" : "bottomright";
+    L.control.zoom({ position: controlPosition }).addTo(map);
 
-    const locateControl = L.control({ position: "bottomright" });
+    const locateControl = L.control({ position: controlPosition });
     locateControl.onAdd = () => {
       const container = L.DomUtil.create("div", "leaflet-control leaflet-control-locate");
       const button = L.DomUtil.create("button", "locate-button", container);
@@ -125,6 +301,7 @@
     };
     locateControl.addTo(map);
 
+    const markerRenderer = L.canvas({ padding: 0.5 });
     const markers = [];
     const updateLabelOpacity = () => {
       const zoom = map.getZoom();
@@ -180,6 +357,7 @@
         fillColor: MARKER_STYLE_DEFAULT.fillColor,
         fillOpacity: 0.9,
         weight: 2,
+        renderer: markerRenderer,
       })
         .addTo(map)
         .bindTooltip(buildTooltipHtml(facility, "", ""), {

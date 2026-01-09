@@ -40,7 +40,7 @@
     if (!normalized) {
       return false;
     }
-    return ["○", "〇", "◯", "◎"].some(mark => normalized.includes(mark));
+    return ["○", "〇", "◯", "午前", "午後"].some(mark => normalized.includes(mark));
   }
 
   window.App.utils = {

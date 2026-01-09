@@ -1,14 +1,69 @@
 ﻿(() => {
   window.App = window.App || {};
 
+  const CACHE_PREFIX = "csv-cache:v1:";
+  const CACHE_TTL_MS = 60 * 60 * 1000;
+
+  function getCacheKey(url) {
+    return `${CACHE_PREFIX}${url}`;
+  }
+
+  function loadCachedCSV(url) {
+    try {
+      const raw = localStorage.getItem(getCacheKey(url));
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") {
+        localStorage.removeItem(getCacheKey(url));
+        return null;
+      }
+      const timestamp = Number(parsed.timestamp);
+      if (!Number.isFinite(timestamp)) {
+        localStorage.removeItem(getCacheKey(url));
+        return null;
+      }
+      if (Date.now() - timestamp > CACHE_TTL_MS) {
+        localStorage.removeItem(getCacheKey(url));
+        return null;
+      }
+      if (typeof parsed.data !== "string") {
+        localStorage.removeItem(getCacheKey(url));
+        return null;
+      }
+      return parsed.data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveCachedCSV(url, data) {
+    try {
+      const payload = {
+        timestamp: Date.now(),
+        data,
+      };
+      localStorage.setItem(getCacheKey(url), JSON.stringify(payload));
+    } catch (error) {
+      // Ignore quota or storage errors.
+    }
+  }
+
   async function fetchCSV(url, encoding = "shift-jis") {
-    const res = await fetch(url, { cache: "no-store" });
+    const cached = loadCachedCSV(url);
+    if (cached) {
+      return cached;
+    }
+    const res = await fetch(url);
     if (!res.ok) {
       throw new Error(`CSV fetch failed: ${res.status} ${res.statusText}`);
     }
     const buffer = await res.arrayBuffer();
     const decoder = new TextDecoder(encoding);
-    return decoder.decode(buffer);
+    const text = decoder.decode(buffer);
+    saveCachedCSV(url, text);
+    return text;
   }
 
   // RFC4180-ish CSV parser with quoted fields support.
@@ -61,4 +116,3 @@
 
   window.App.csv = { fetchCSV, parseCSV };
 })();
-
